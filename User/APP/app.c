@@ -8,15 +8,15 @@ void App_Init(void)//所有外接需要初始值的初始化部分
 
 void Display(void)//给屏幕留的显示函数
 {	
+	Mode=Key_GetNum()+1;
 	if(Mode==1)
 	OLED_Printf(1,4,OLED_6X8,"mode:default");
-	
 	if(Mode==2)
-	OLED_Printf(1,4,OLED_6X8,"mode:default");
+	OLED_Printf(1,4,OLED_6X8,"mode:circle");
 	if(Mode==3)
-	OLED_Printf(1,4,OLED_6X8,"mode:default");
+	OLED_Printf(1,4,OLED_6X8,"mode:square");
 	if(Mode==4)
-	OLED_Printf(1,4,OLED_6X8,"mode:default");
+	OLED_Printf(1,4,OLED_6X8,"mode:oval");
 }
 void App_Task(void)//所有东西的应用层
 {
@@ -37,6 +37,6 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)//总计时器
 		
 		}
 		
-		kEY_Tick();
+		Key_Tick();
 	}
 }
