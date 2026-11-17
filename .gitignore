@@ -1,0 +1,21 @@
+# Keil build outputs
+/MDK-ARM/car/
+*.o
+*.d
+*.crf
+*.axf
+*.hex
+*.map
+*.lst
+*.lnp
+*.dep
+*.build_log.htm
+
+# Local IDE state
+*.uvguix.*
+*.uvgui.*
+
+# Operating system files
+Thumbs.db
+Desktop.ini
+.DS_Store
