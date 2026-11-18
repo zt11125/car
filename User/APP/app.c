@@ -2,11 +2,46 @@
 
 
 volatile uint16_t count1,count2,count3;
-volatile uint8_t Mode;
-int16_t LeftSpeed,RightSpeed;
+volatile uint8_t Mode=1;
+int16_t LeftSpeed,RightSpeed,StandardSpeed;
 uint16_t encoder_cnt,encoder_last;
 int16_t encoder_cnt1=0;
 uint16_t Sensor_Data[5];
+
+PID_t circle=
+{
+	.kp=0,
+	.ki=0,
+	.kd=0,
+	.OutMax=100,
+	.OutMin=-100
+};
+PID_t square=
+{
+	.kp=0,
+	.ki=0,
+	.kd=0,
+	.OutMax=100,
+	.OutMin=-100
+
+};
+PID_t oval=
+{
+	.kp=0,
+	.ki=0,
+	.kd=0,
+	.OutMax=100,
+	.OutMin=-100
+
+};
+PID_t speed=//双环轨迹加速度
+{
+	.kp=0,
+	.ki=0,
+	.kd=0,
+	.OutMax=100,
+	.OutMin=-100
+};
 
 void App_Init(void)//所有外接需要初始值的初始化部分
 {
@@ -19,7 +54,15 @@ void App_Init(void)//所有外接需要初始值的初始化部分
 	HAL_TIM_Encoder_Start(&htim3,TIM_CHANNEL_1|TIM_CHANNEL_2);
 	encoder_last=Encoder_GetLeftCnt();
 }
-
+void ModeApp(void)
+{
+	if(Mode==2)
+	pid_compute(&circle);
+	if(Mode==3)
+	pid_compute(&square);
+	if(Mode==4)
+	pid_compute(&oval);
+}
 void Display(void)//给屏幕留的显示函数
 {	
 	OLED_Clear();
@@ -44,7 +87,7 @@ void Display(void)//给屏幕留的显示函数
 }
 void App_Task(void)//所有东西的应用层
 {
-	
+	ModeApp();
 }
 
 

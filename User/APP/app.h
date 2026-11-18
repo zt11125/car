@@ -2,6 +2,7 @@
 #define APP_H
 #include "main.h"
 #include "tim.h"
+#include "alg_pid.h"
 #include "bsp_oled.h"
 #include "bsp_key.h"
 #include "LT_Sensor.h"
