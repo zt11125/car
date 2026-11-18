@@ -8,4 +8,6 @@ void pid_compute(PID_t* PID_Data)
 	PID_Data->Error0=PID_Data->Target-PID_Data->Actual;
 	PID_Data->ErrorInt+=PID_Data->Error0;
 	PID_Data->Out=kp*PID_Data->Error0+ki*PID_Data->ErrorInt+kd*(PID_Data->Error0-PID_Data->Error1);
+	if(PID_Data->Out>PID_Data->OutMax)PID_Data->Out=PID_Data->OutMax;
+	else if(PID_Data->Out<PID_Data->OutMin)PID_Data->Out=PID_Data->OutMin;
 }
