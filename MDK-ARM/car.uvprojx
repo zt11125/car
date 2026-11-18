@@ -336,7 +336,7 @@
               <MiscControls></MiscControls>
               <Define>USE_HAL_DRIVER,STM32F103xB</Define>
               <Undefine></Undefine>
-              <IncludePath>../Core/Inc;../Drivers/STM32F1xx_HAL_Driver/Inc;../Drivers/STM32F1xx_HAL_Driver/Inc/Legacy;../Drivers/CMSIS/Device/ST/STM32F1xx/Include;../Drivers/CMSIS/Include;../User/APP;../User/PID;../User/LineTrackingSensor;..\User\OLED;..\User\KEY</IncludePath>
+              <IncludePath>../Core/Inc;../Drivers/STM32F1xx_HAL_Driver/Inc;../Drivers/STM32F1xx_HAL_Driver/Inc/Legacy;../Drivers/CMSIS/Device/ST/STM32F1xx/Include;../Drivers/CMSIS/Include;../User/APP;../User/PID;../User/Line Tracking Sensor;..\User\OLED;..\User\KEY;..\User\ENCODER</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -639,6 +639,36 @@
               <FileName>bsp_motor.h</FileName>
               <FileType>5</FileType>
               <FilePath>..\User\MOTOR\bsp_motor.h</FilePath>
+            </File>
+          </Files>
+        </Group>
+        <Group>
+          <GroupName>ENCODER</GroupName>
+          <Files>
+            <File>
+              <FileName>bsp_encoder.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\User\ENCODER\bsp_encoder.c</FilePath>
+            </File>
+            <File>
+              <FileName>bsp_encoder.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\User\ENCODER\bsp_encoder.h</FilePath>
+            </File>
+          </Files>
+        </Group>
+        <Group>
+          <GroupName>NTC</GroupName>
+          <Files>
+            <File>
+              <FileName>bsp_ntc.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\User\NTC\bsp_ntc.c</FilePath>
+            </File>
+            <File>
+              <FileName>bsp_ntc.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\User\NTC\bsp_ntc.h</FilePath>
             </File>
           </Files>
         </Group>
