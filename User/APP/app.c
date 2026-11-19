@@ -1,13 +1,20 @@
 #include "app.h"
-
+#include "tim.h"
+#include "alg_pid.h"
+#include "bsp_oled.h"
+#include "bsp_key.h"
+#include "LT_Sensor.h"
+#include "bsp_encoder.h"
+#include "bsp_motor.h"
+#include "Motor_config.h"
 
 volatile uint16_t count1,count2,count3;
-volatile uint8_t Mode=1;
-int16_t LeftSpeed,RightSpeed,StandardSpeed;
+volatile uint8_t Mode=1,Start=0;
+int16_t LeftSpeed,RightSpeed,DeltaSpeed;
 uint16_t encoder_cnt,encoder_last;
 int16_t encoder_cnt1=0;
 uint16_t Sensor_Data[5];
-
+static uint32_t last_oled_tick = 0;
 PID_t circle=
 {
 	.kp=0,
@@ -34,7 +41,15 @@ PID_t oval=
 	.OutMin=-100
 
 };
-PID_t speed=//双环轨迹加速度
+PID_t Leftspeed=//双环轨迹加速度
+{
+	.kp=0,
+	.ki=0,
+	.kd=0,
+	.OutMax=100,
+	.OutMin=-100
+};
+PID_t Rightspeed=
 {
 	.kp=0,
 	.ki=0,
@@ -51,28 +66,15 @@ void App_Init(void)//所有外接需要初始值的初始化部分
         OLED_Update();
     }
 	HAL_TIM_Base_Start_IT(&htim1);
-	HAL_TIM_Encoder_Start(&htim3,TIM_CHANNEL_1|TIM_CHANNEL_2);
+	HAL_TIM_Encoder_Start(&htim3,TIM_CHANNEL_ALL);
+	HAL_TIM_PWM_Start(&htim2,TIM_CHANNEL_1);
+	HAL_TIM_PWM_Start(&htim2,TIM_CHANNEL_2);
 	encoder_last=Encoder_GetLeftCnt();
 }
-void ModeApp(void)
-{
-	if(Mode==2)
-	pid_compute(&circle);
-	if(Mode==3)
-	pid_compute(&square);
-	if(Mode==4)
-	pid_compute(&oval);
-}
+
 void Display(void)//给屏幕留的显示函数
 {	
 	OLED_Clear();
-	if(Key_GetNum()==2)
-	{
-		if(Mode<4)Mode++;
-		else Mode=1;
-		
-		
-	}
 	if(Mode==1)
 	OLED_Printf(1,1,OLED_6X8,"mode:default");
 	OLED_Printf(1,10,OLED_6X8,"channel1~5: %d %d %d %d %d",Sensor_Data[0],Sensor_Data[1],Sensor_Data[2],Sensor_Data[3],Sensor_Data[4]);
@@ -80,46 +82,96 @@ void Display(void)//给屏幕留的显示函数
 	OLED_Printf(1,30,OLED_6X8,"Right Speed:%d ",RightSpeed);
 	if(Mode==2)
 	OLED_Printf(1,4,OLED_6X8,"mode:circle");
+	OLED_Printf(1,10,OLED_6X8,"channel1~5: %d %d %d %d %d",Sensor_Data[0],Sensor_Data[1],Sensor_Data[2],Sensor_Data[3],Sensor_Data[4]);
+	OLED_Printf(1,20,OLED_6X8,"Left Speed:%d ",LeftSpeed);
+	OLED_Printf(1,30,OLED_6X8,"Right Speed:%d ",RightSpeed);
 	if(Mode==3)
 	OLED_Printf(1,4,OLED_6X8,"mode:square");
+	OLED_Printf(1,10,OLED_6X8,"channel1~5: %d %d %d %d %d",Sensor_Data[0],Sensor_Data[1],Sensor_Data[2],Sensor_Data[3],Sensor_Data[4]);
+	OLED_Printf(1,20,OLED_6X8,"Left Speed:%d ",LeftSpeed);
+	OLED_Printf(1,30,OLED_6X8,"Right Speed:%d ",RightSpeed);
 	if(Mode==4)
 	OLED_Printf(1,4,OLED_6X8,"mode:oval");
+	OLED_Printf(1,10,OLED_6X8,"channel1~5: %d %d %d %d %d",Sensor_Data[0],Sensor_Data[1],Sensor_Data[2],Sensor_Data[3],Sensor_Data[4]);
+	OLED_Printf(1,20,OLED_6X8,"Left Speed:%d ",LeftSpeed);
+	OLED_Printf(1,30,OLED_6X8,"Right Speed:%d ",RightSpeed);
+}
+void Key_Get(void)
+{
+	switch (Key_GetNum())
+		{
+		case 1:Start=1;
+			break;
+		 case 3:
+			
+				Start=0;		//先清防止卡中间导致清完后start非0
+				Set_LeftMotor(0);
+				Set_RightMotor(0);
+				break;
+		 case 2:
+				if(Mode<4)Mode++;
+				else Mode=1;
+			break;
+		 default:
+			 break;
+	 }
+	
 }
 void App_Task(void)//所有东西的应用层
 {
-	ModeApp();
+	Key_Get();
+	
+    uint32_t now = HAL_GetTick();
+    if ((uint32_t)(now - last_oled_tick) >= 200U)//放tim里优先级高会卡住systick
+    {
+        last_oled_tick = now;
+        Display();
+        OLED_Update();
+    }
 }
 
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)//总计时器
 {
 	if(htim->Instance==TIM1)
-	{	
-		count1++;
-		count2++;
-		count3++;
-		if(count1>=5)
+	{	count2++;
+		if(Start)
 		{	
-			count1=0;
-			encoder_cnt=encoder_last=Encoder_GetLeftCnt();
-			LeftSpeed=(int16_t)(encoder_cnt-encoder_last);//这种后就不用__HAL_is那个方向检查
-			encoder_last=encoder_cnt;
+			count1++;
+			count3++;
+			if(count1>=5)
+			{	
+				count1=0;
+				encoder_cnt=Encoder_GetLeftCnt();
+				LeftSpeed=(int16_t)(encoder_cnt-encoder_last);//这种后就不用__HAL_is那个方向检查
+				encoder_last=encoder_cnt;
 			
-			RightSpeed = Encoder_GetRightSpeed(&encoder_cnt1);
+				RightSpeed = Encoder_GetRightSpeed(&encoder_cnt1);
+				pid_compute(&Leftspeed);			//这里速度环
+				pid_compute(&Rightspeed);
+				Set_LeftMotor(Leftspeed.Out);//差速记得写
+				Set_RightMotor(Rightspeed.Out);
+			}
+			if(count3>=10)
+			{
+				count3=0;
+				LT_Sensor_Get(Sensor_Data);
+				switch (Mode)							//这里放循迹环
+				{
+					case 2:pid_compute(&circle);
+					DeltaSpeed=circle.Out*SPEED_RAGE/circle.OutMax;//因为最大和最小一般是相反数所以我偷懒了
+						break;
+					case 3:pid_compute(&square);
+						DeltaSpeed=square.Out*SPEED_RAGE/square.OutMax;
+						break;
+					case 4:pid_compute(&oval);
+					DeltaSpeed=oval.Out*SPEED_RAGE/oval.OutMax;
+						break;
+					default:
+						break;
+				}
 			
-		}
-		if(count3>=10)
-		{
-			LT_Sensor_Get(Sensor_Data);
-			
-			
-			
-		}
-		if(count2>=200)
-		{
-			count2=0;
-			Display();
-			OLED_Update();
+			}
 		}
 		
 		Key_Tick();
