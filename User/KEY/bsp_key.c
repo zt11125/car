@@ -2,11 +2,14 @@
 
 volatile uint8_t KeyNum;
 volatile uint8_t value;
+uint16_t count=0;
+uint8_t PreState,CurState=0;
 uint8_t Key_GetNum(void)//获得真正的按键数
 {
 	uint32_t mask=__get_PRIMASK();
 	__disable_irq();
 	value=KeyNum;  //保留一下防止被接走
+	KeyNum=0;
 	__set_PRIMASK(mask);
 	return value;
 }
@@ -18,8 +21,8 @@ uint8_t Key_GetState(void)//直接拿按键状态
 	else return 0;
 }
 void Key_Tick(void)//20非阻塞延迟读取用来消抖
-{	uint16_t count=0;
-	uint8_t PreState,CurState=0;
+{	
+
 	count++;
 	if(count>20)
 	{	count=0;
