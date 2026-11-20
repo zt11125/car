@@ -11,7 +11,7 @@ typedef struct
 	float kd;
 	int16_t Error0;
 	int16_t Error1;
-	int16_t ErrorInt;
+	float ErrorInt;
 	int16_t OutMax;
 	int16_t OutMin;
 	int16_t Out;

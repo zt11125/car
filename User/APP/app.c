@@ -115,6 +115,11 @@ void Key_Get(void)
 				{
 					encoder_last = Encoder_GetLeftCnt();//所有清零防止遗留,接口不会有问题只要保存最后一次就行，不会随便累计
 					(void)Encoder_GetRightSpeed(&encoder_cnt1);//这个调用后会清零cnt，void这里是抛弃旧函数标记
+					Rightspeed.ErrorInt=0;
+					Leftspeed.ErrorInt=0;
+					circle.ErrorInt=0;
+					oval.ErrorInt=0;
+					square.ErrorInt=0;
 					count1 = 0;
 					Start = 1;
 				}
