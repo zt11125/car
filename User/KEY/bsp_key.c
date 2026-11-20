@@ -14,10 +14,10 @@ uint8_t Key_GetNum(void)//获得真正的按键数
 	return value;
 }
 uint8_t Key_GetState(void)//直接拿按键状态
-{
-	if(HAL_GPIO_ReadPin(KEY_START_GPIO_Port,KEY_START_Pin)==1) return 1;
-	else if(HAL_GPIO_ReadPin(KEY_MODE_GPIO_Port,KEY_MODE_Pin)==1) return 2;
-	else if(HAL_GPIO_ReadPin(KEY_STOP_GPIO_Port,KEY_STOP_Pin)==1) return 3;
+{	
+	if(HAL_GPIO_ReadPin(KEY_STOP_GPIO_Port,KEY_STOP_Pin)==GPIO_PIN_RESET) return 3;//暂停优先级要最高
+	else if(HAL_GPIO_ReadPin(KEY_MODE_GPIO_Port,KEY_MODE_Pin)==GPIO_PIN_RESET) return 2;
+	else if(HAL_GPIO_ReadPin(KEY_START_GPIO_Port,KEY_START_Pin)==GPIO_PIN_RESET) return 1;
 	else return 0;
 }
 void Key_Tick(void)//20非阻塞延迟读取用来消抖
