@@ -4,6 +4,6 @@
 #include "tim.h"
 
 uint16_t Encoder_GetLeftCnt(void);
-int16_t Encoder_GetRightSpeed(int16_t* encoder_cn);
+int16_t Encoder_GetRightSpeed(volatile int16_t* encoder_cn);
 
 #endif
