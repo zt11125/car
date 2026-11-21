@@ -336,8 +336,8 @@
             <VariousControls>
               <MiscControls />
               <Define>USE_HAL_DRIVER,STM32F103xB</Define>
-              <Undefine />
-              <IncludePath>../Core/Inc;../Drivers/STM32F1xx_HAL_Driver/Inc;../Drivers/STM32F1xx_HAL_Driver/Inc/Legacy;../Drivers/CMSIS/Device/ST/STM32F1xx/Include;../Drivers/CMSIS/Include;../User/APP;../User/PID;../User/OLED;../User/KEY;../User/ENCODER;../User;../User/MOTOR;../User/Line_Tracking_Sensor;../User/LED_PWM;../User/NTC</IncludePath>
+              <Undefine></Undefine>
+              <IncludePath>../Core/Inc;../Drivers/STM32F1xx_HAL_Driver/Inc;../Drivers/STM32F1xx_HAL_Driver/Inc/Legacy;../Drivers/CMSIS/Device/ST/STM32F1xx/Include;../Drivers/CMSIS/Include;../User/APP;../User/PID;..\User\OLED;..\User\KEY;..\User\ENCODER;..\User;..\User\MOTOR;..\User\Line_Tracking_Sensor;..\User\LED_PWM;..\User\NTC</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -719,5 +719,6 @@
       </Layer>
     </Layers>
   </LayerInfo>
+
 </Project>
 
