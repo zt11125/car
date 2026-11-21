@@ -19,3 +19,13 @@
 Thumbs.db
 Desktop.ini
 .DS_Store
+# VS Code 个人配置与工具日志
+.vscode/
+*.log
+*.log.lock
+
+# 调试配置缓存副本
+*.dbgconf.base*
+
+# Keil 个人窗口布局
+*.uvguix.*
