@@ -7,6 +7,8 @@
 #include "bsp_encoder.h"
 #include "bsp_motor.h"
 #include "Motor_config.h"
+#include "bsp_ntc.h"
+#include "bsp_led.h"
 
 volatile uint16_t count1,count2,count3;
 volatile uint8_t Mode=1,Start=0;
@@ -63,7 +65,11 @@ PID_t Rightspeed=
 
 void App_Init(void)//所有外接需要初始值的初始化部分
 {
-    if (OLED_Init() == HAL_OK)
+
+	(void)NTC_Init();
+	LED_Init();
+    
+	if (OLED_Init() == HAL_OK)
     {
         Display();
         OLED_Update();
@@ -80,24 +86,17 @@ void Display(void)//给屏幕留的显示函数
 	OLED_Clear();
 	if(Mode==1)
 	OLED_Printf(1,1,OLED_6X8,"mode:default");
-	OLED_Printf(1,10,OLED_6X8,"channel1~5: %d %d %d %d %d",Sensor_Data[0],Sensor_Data[1],Sensor_Data[2],Sensor_Data[3],Sensor_Data[4]);
-	OLED_Printf(1,20,OLED_6X8,"Left Speed:%f ",Leftspeed.Actual);
-	OLED_Printf(1,30,OLED_6X8,"Right Speed:%f ",Rightspeed.Actual);
 	if(Mode==2)
 	OLED_Printf(1,4,OLED_6X8,"mode:circle");
-	OLED_Printf(1,10,OLED_6X8,"channel1~5: %d %d %d %d %d",Sensor_Data[0],Sensor_Data[1],Sensor_Data[2],Sensor_Data[3],Sensor_Data[4]);
-	OLED_Printf(1,20,OLED_6X8,"Left Speed:%f ",Leftspeed.Actual);
-	OLED_Printf(1,30,OLED_6X8,"Right Speed:%f ",Rightspeed.Actual);
 	if(Mode==3)
 	OLED_Printf(1,4,OLED_6X8,"mode:square");
-	OLED_Printf(1,10,OLED_6X8,"channel1~5: %d %d %d %d %d",Sensor_Data[0],Sensor_Data[1],Sensor_Data[2],Sensor_Data[3],Sensor_Data[4]);
-	OLED_Printf(1,20,OLED_6X8,"Left Speed:%f ",Leftspeed.Actual);
-	OLED_Printf(1,30,OLED_6X8,"Right Speed:%f ",Rightspeed.Actual);
 	if(Mode==4)
 	OLED_Printf(1,4,OLED_6X8,"mode:oval");
+
 	OLED_Printf(1,10,OLED_6X8,"channel1~5: %d %d %d %d %d",Sensor_Data[0],Sensor_Data[1],Sensor_Data[2],Sensor_Data[3],Sensor_Data[4]);
 	OLED_Printf(1,20,OLED_6X8,"Left Speed:%f ",Leftspeed.Actual);
 	OLED_Printf(1,30,OLED_6X8,"Right Speed:%f ",Rightspeed.Actual);
+	OLED_Printf(1, 40, OLED_6X8, "Temp:%.1f C", (double)NTC_GetTemperature());
 }
 void Key_Get(void)
 {
@@ -141,6 +140,8 @@ void App_Task(void)//所有东西的应用层
     if ((uint32_t)(now - last_oled_tick) >= 200U)//放tim里优先级高会卡住systick
     {
         last_oled_tick = now;
+		NTC_Update();
+		LED_SetTemperature(NTC_GetTemperature());
         Display();
         OLED_Update();
     }
@@ -149,8 +150,11 @@ void App_Task(void)//所有东西的应用层
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)//总计时器
 {
+	
 	if(htim->Instance==TIM1)
-	{	count2++;
+	{
+		LED_Breath_Tick();
+
 		if(Start)
 		{	
 			count1++;
