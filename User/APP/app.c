@@ -151,7 +151,7 @@ void App_Task(void)//所有东西的应用层
         Display();
         OLED_Update();
     }
-	    if ((uint32_t)(now - last_uart_tick) >= 500)  
+	if ((uint32_t)(now - last_uart_tick) >= 1000)  
     {
         last_uart_tick = now;
         UART_SendTemperature();

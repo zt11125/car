@@ -9,6 +9,6 @@ void UART_SendTemperature(void)
 
     sprintf(buf,"Temperature :  %f",temper);
 
-    (void)HAL_UART_Transmit(&huart1, (uint8_t *)buf,strlen(buf), 100U);
+    HAL_UART_Transmit(&huart1, (uint8_t *)buf,strlen(buf), 100);
 }
 
