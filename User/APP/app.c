@@ -9,6 +9,7 @@
 #include "Motor_config.h"
 #include "bsp_ntc.h"
 #include "bsp_led.h"
+#include "UART_Transmit.h"
 
 volatile uint16_t count1,count2,count3;
 volatile uint8_t Mode=1,Start=0;
@@ -17,6 +18,8 @@ volatile uint16_t encoder_cnt,encoder_last;
 volatile int16_t encoder_cnt1=0;
 uint16_t Sensor_Data[5];
 static uint32_t last_oled_tick = 0;
+static uint32_t last_uart_tick = 0;
+
 PID_t circle=
 {
 	.kp=0,
@@ -98,6 +101,8 @@ void Display(void)//给屏幕留的显示函数
 	OLED_Printf(1,30,OLED_6X8,"Right Speed:%f ",Rightspeed.Actual);
 	OLED_Printf(1, 40, OLED_6X8, "Temp:%.1f C", (double)NTC_GetTemperature());
 }
+
+
 void Key_Get(void)
 {
 	switch (Key_GetNum())
@@ -134,6 +139,7 @@ void Key_Get(void)
 }
 void App_Task(void)//所有东西的应用层
 {
+
 	Key_Get();
 	
     uint32_t now = HAL_GetTick();
@@ -144,6 +150,11 @@ void App_Task(void)//所有东西的应用层
 		LED_SetTemperature(NTC_GetTemperature());
         Display();
         OLED_Update();
+    }
+	    if ((uint32_t)(now - last_uart_tick) >= 500)  
+    {
+        last_uart_tick = now;
+        UART_SendTemperature();
     }
 }
 

@@ -74,3 +74,5 @@ uint16_t NTC_GetRawAdc(void)
 {
     return s_adc_dma[NTC_ADC_INDEX];//读最最初始的值
 }
+
+
