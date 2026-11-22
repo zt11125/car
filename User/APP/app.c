@@ -10,6 +10,7 @@
 #include "bsp_ntc.h"
 #include "bsp_led.h"
 #include "UART_Transmit.h"
+#include "Beep.h"
 
 volatile uint16_t count1,count2,count3;
 volatile uint8_t Mode=1,Start=0;
@@ -19,6 +20,7 @@ volatile int16_t encoder_cnt1=0;
 uint16_t Sensor_Data[5];
 static uint32_t last_oled_tick = 0;
 static uint32_t last_uart_tick = 0;
+static volatile uint16_t beep_ms = 0;
 
 PID_t circle=
 {
@@ -82,6 +84,7 @@ void App_Init(void)//所有外接需要初始值的初始化部分
 	HAL_TIM_PWM_Start(&htim2,TIM_CHANNEL_1);
 	HAL_TIM_PWM_Start(&htim2,TIM_CHANNEL_2);
 	encoder_last=Encoder_GetLeftCnt();
+	Beep(100);
 }
 
 void Display(void)//给屏幕留的显示函数
@@ -137,6 +140,7 @@ void Key_Get(void)
 	 }
 	
 }
+
 void App_Task(void)//所有东西的应用层
 {
 
@@ -151,7 +155,7 @@ void App_Task(void)//所有东西的应用层
         Display();
         OLED_Update();
     }
-	if ((uint32_t)(now - last_uart_tick) >= 1000)  
+	if ((uint32_t)(now - last_uart_tick) >= 1000)  //1s一次发送
     {
         last_uart_tick = now;
         UART_SendTemperature();
@@ -164,7 +168,17 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)//总计时器
 	
 	if(htim->Instance==TIM1)
 	{
+		Beep_Tick(); 
 		LED_Breath_Tick();
+
+		if (beep_ms)                      
+		{
+    		if (beep_ms == 0)//为0关掉
+			{
+        		HAL_GPIO_WritePin(BUZ_GPIO_Port, BUZ_Pin, GPIO_PIN_RESET);
+			}
+			beep_ms--;
+		}	
 
 		if(Start)
 		{	
@@ -240,3 +254,4 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
         encoder_cnt1 += (a == b) ? 1 : -1;
 	
 }
+
