@@ -20,7 +20,7 @@ volatile int16_t encoder_cnt1=0;
 uint16_t Sensor_Data[5];
 static uint32_t last_oled_tick = 0;
 static uint32_t last_uart_tick = 0;
-static volatile uint16_t beep_ms = 0;
+static uint16_t line_lost_ms = 0;
 
 PID_t circle=
 {
@@ -93,18 +93,39 @@ void Display(void)//给屏幕留的显示函数
 	if(Mode==1)
 	OLED_Printf(1,1,OLED_6X8,"mode:default");
 	if(Mode==2)
-	OLED_Printf(1,4,OLED_6X8,"mode:circle");
+	OLED_Printf(1,1,OLED_6X8,"mode:circle");
 	if(Mode==3)
-	OLED_Printf(1,4,OLED_6X8,"mode:square");
+	OLED_Printf(1,1,OLED_6X8,"mode:square");
 	if(Mode==4)
-	OLED_Printf(1,4,OLED_6X8,"mode:oval");
+	OLED_Printf(1,1,OLED_6X8,"mode:oval");
 
 	OLED_Printf(1,10,OLED_6X8,"channel1~5: %d %d %d %d %d",Sensor_Data[0],Sensor_Data[1],Sensor_Data[2],Sensor_Data[3],Sensor_Data[4]);
-	OLED_Printf(1,20,OLED_6X8,"Left Speed:%f ",Leftspeed.Actual);
-	OLED_Printf(1,30,OLED_6X8,"Right Speed:%f ",Rightspeed.Actual);
+	OLED_Printf(1,20,OLED_6X8,"Left Speed:%.2f ",Leftspeed.Actual);
+	OLED_Printf(1,30,OLED_6X8,"Right Speed:%.2f ",Rightspeed.Actual);
 	OLED_Printf(1, 40, OLED_6X8, "Temp:%.1f C", (double)NTC_GetTemperature());
 }
 
+void StopAndClear(void)      //停车 + 清控制状态
+{
+    Start=0;                      
+    Set_LeftMotor(0);
+    Set_RightMotor(0);
+
+    encoder_last = Encoder_GetLeftCnt();          
+    (void)Encoder_GetRightSpeed(&encoder_cnt1);  
+
+    Leftspeed.ErrorInt=0;  Rightspeed.ErrorInt=0;
+    Leftspeed.Error0=0;    Leftspeed.Error1=0;    
+    Rightspeed.Error0=0;   Rightspeed.Error1=0;
+
+    circle.ErrorInt=0;  circle.Error0=0;  circle.Error1=0;
+    square.ErrorInt=0;  square.Error0=0;  square.Error1=0;
+    oval.ErrorInt=0;    oval.Error0=0;    oval.Error1=0;
+
+    count1=0;  count3=0;
+    line_lost_ms=0;
+    DeltaSpeed=0;
+}
 
 void Key_Get(void)
 {
@@ -116,22 +137,17 @@ void Key_Get(void)
 				Start=0;		//先清防止卡中间导致清完后start非0
 				Set_LeftMotor(0);
 				Set_RightMotor(0);
+				StopAndClear();
 				break;
 		 case 1: 
 			 if (Start == 0)
 				{
-					encoder_last = Encoder_GetLeftCnt();//所有清零防止遗留,接口不会有问题只要保存最后一次就行，不会随便累计
-					(void)Encoder_GetRightSpeed(&encoder_cnt1);//这个调用后会清零cnt，void这里是抛弃旧函数标记
-					Rightspeed.ErrorInt=0;
-					Leftspeed.ErrorInt=0;
-					circle.ErrorInt=0;
-					oval.ErrorInt=0;
-					square.ErrorInt=0;
-					count1 = 0;
+					StopAndClear();
 					Start = 1;
 				}
 			break;
 		 case 2:
+		 		if (Start) StopAndClear(); 
 				if(Mode<4)Mode++;
 				else Mode=1;
 			break;
@@ -171,15 +187,6 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)//总计时器
 		Beep_Tick(); 
 		LED_Breath_Tick();
 
-		if (beep_ms)                      
-		{
-    		if (beep_ms == 0)//为0关掉
-			{
-        		HAL_GPIO_WritePin(BUZ_GPIO_Port, BUZ_Pin, GPIO_PIN_RESET);
-			}
-			beep_ms--;
-		}	
-
 		if(Start)
 		{	
 			count1++;
@@ -206,12 +213,18 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)//总计时器
 				count3=0;
 				LT_Sensor_Get(Sensor_Data);
 				if((Sensor_Data[0]||Sensor_Data[1]||Sensor_Data[2]||Sensor_Data[3]||Sensor_Data[4])==0)
+				{
+					line_lost_ms += 10;   
+					if(line_lost_ms >= 200)//持续200ms才认为脱线
 					{
 						Start=0;
 						Set_LeftMotor(0);
 						Set_RightMotor(0);
+						line_lost_ms=0;
 					}
+				}
 				else{
+				line_lost_ms=0;   
 				square.Actual=Sensor_Data[0]*(-2)+Sensor_Data[1]*(-1)+Sensor_Data[2]*(0)+Sensor_Data[3]*(1)+Sensor_Data[4]*(2);//权重计算
 				oval.Actual=Sensor_Data[0]*(-2)+Sensor_Data[1]*(-1)+Sensor_Data[2]*(0)+Sensor_Data[3]*(1)+Sensor_Data[4]*(2);
 				circle.Actual=Sensor_Data[0]*(-2)+Sensor_Data[1]*(-1)+Sensor_Data[2]*(0)+Sensor_Data[3]*(1)+Sensor_Data[4]*(2);

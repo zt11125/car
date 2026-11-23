@@ -4,6 +4,7 @@ volatile uint8_t KeyNum;
 volatile uint8_t value;
 uint16_t count=0;
 uint8_t PreState,CurState=0;
+
 uint8_t Key_GetNum(void)//获得真正的按键数
 {
 	uint32_t mask=__get_PRIMASK();
