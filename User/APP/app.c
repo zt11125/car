@@ -13,14 +13,16 @@
 #include "Beep.h"
 
 volatile uint16_t count1,count2,count3;
-volatile uint8_t Mode=1,Start=0;
+volatile uint8_t Mode=ST_STAIGHT,Start=0;//START为0时强制进入s0，为1时取消状态位固定
 float DeltaSpeed;
+float Dist;//距离
 volatile uint16_t encoder_cnt,encoder_last;
 volatile int16_t encoder_cnt1=0;
 uint16_t Sensor_Data[5];
 static uint32_t last_oled_tick = 0;
 static uint32_t last_uart_tick = 0;
-static volatile uint16_t beep_ms = 0;
+static uint16_t line_lost_ms = 0;
+char line[20] = "";
 
 PID_t circle=
 {
@@ -90,21 +92,72 @@ void App_Init(void)//所有外接需要初始值的初始化部分
 void Display(void)//给屏幕留的显示函数
 {	
 	OLED_Clear();
-	if(Mode==1)
+	if(Mode==ST_FAULT)
+	{
+		OLED_Printf(1,20,OLED_6X8,"errot error error");
+		return ;
+	}
+	if(Start)
+	{
+	if(Mode==ST_STAIGHT)
 	OLED_Printf(1,1,OLED_6X8,"mode:default");
-	if(Mode==2)
-	OLED_Printf(1,4,OLED_6X8,"mode:circle");
-	if(Mode==3)
-	OLED_Printf(1,4,OLED_6X8,"mode:square");
-	if(Mode==4)
-	OLED_Printf(1,4,OLED_6X8,"mode:oval");
+	if(Mode==ST_CIRCLE)
+	OLED_Printf(1,1,OLED_6X8,"mode:circle");
+	if(Mode==ST_SQUARE)
+	OLED_Printf(1,1,OLED_6X8,"mode:square");
+	if(Mode==ST_OVAL)
+	OLED_Printf(1,1,OLED_6X8,"mode:oval");
 
 	OLED_Printf(1,10,OLED_6X8,"channel1~5: %d %d %d %d %d",Sensor_Data[0],Sensor_Data[1],Sensor_Data[2],Sensor_Data[3],Sensor_Data[4]);
-	OLED_Printf(1,20,OLED_6X8,"Left Speed:%f ",Leftspeed.Actual);
-	OLED_Printf(1,30,OLED_6X8,"Right Speed:%f ",Rightspeed.Actual);
-	OLED_Printf(1, 40, OLED_6X8, "Temp:%.1f C", (double)NTC_GetTemperature());
+	OLED_Printf(1,20,OLED_6X8,"Left Speed:%.2f ",Leftspeed.Actual);
+	OLED_Printf(1,30,OLED_6X8,"Right Speed:%.2f ",Rightspeed.Actual);
+	OLED_Printf(1,50,OLED_6X8,"%-20s",line);//故障码显示
+	}
+	else 
+	{
+		
+		OLED_Printf(1,10,OLED_6X8,"default");
+		OLED_Printf(2,10,OLED_6X8,"circle");
+		OLED_Printf(1,50,OLED_6X8,"square");
+		OLED_Printf(2,50,OLED_6X8,"oval");
+		OLED_Printf(4, 40, OLED_6X8, "Temp:%.1f C", (double)NTC_GetTemperature());
+		
+		if(Mode==ST_STAIGHT)
+		OLED_ReverseArea(1,10,6*7,8);
+		else if(Mode==ST_CIRCLE)
+		OLED_ReverseArea(2,10,6*6,8);
+		else if(Mode==ST_SQUARE)
+		OLED_ReverseArea(1,50,6*6,8);
+		else if(Mode==ST_OVAL)
+		OLED_ReverseArea(2,50,6*4,8);
+		
+
+	}
 }
 
+void StopAndClear(void)      //停车 + 清控制状态
+{
+    Start=0;                      
+    Set_LeftMotor(0);
+    Set_RightMotor(0);
+
+    encoder_last = Encoder_GetLeftCnt();          
+    (void)Encoder_GetRightSpeed(&encoder_cnt1);  
+
+    Leftspeed.ErrorInt=0;  Rightspeed.ErrorInt=0;
+    Leftspeed.Error0=0;    Leftspeed.Error1=0;    
+    Rightspeed.Error0=0;   Rightspeed.Error1=0;
+
+    circle.ErrorInt=0;  circle.Error0=0;  circle.Error1=0;
+    square.ErrorInt=0;  square.Error0=0;  square.Error1=0;
+    oval.ErrorInt=0;    oval.Error0=0;    oval.Error1=0;
+
+    count1=0;  count3=0;
+    line_lost_ms=0;
+    DeltaSpeed=0;
+	
+	
+}
 
 void Key_Get(void)
 {
@@ -116,24 +169,19 @@ void Key_Get(void)
 				Start=0;		//先清防止卡中间导致清完后start非0
 				Set_LeftMotor(0);
 				Set_RightMotor(0);
+				StopAndClear();
 				break;
 		 case 1: 
 			 if (Start == 0)
 				{
-					encoder_last = Encoder_GetLeftCnt();//所有清零防止遗留,接口不会有问题只要保存最后一次就行，不会随便累计
-					(void)Encoder_GetRightSpeed(&encoder_cnt1);//这个调用后会清零cnt，void这里是抛弃旧函数标记
-					Rightspeed.ErrorInt=0;
-					Leftspeed.ErrorInt=0;
-					circle.ErrorInt=0;
-					oval.ErrorInt=0;
-					square.ErrorInt=0;
-					count1 = 0;
+					StopAndClear();
 					Start = 1;
 				}
 			break;
 		 case 2:
-				if(Mode<4)Mode++;
-				else Mode=1;
+		 		if (Start) StopAndClear(); 
+				if(Mode<ST_OVAL)Mode++;
+				else Mode=ST_STAIGHT;
 			break;
 		 default:
 			 break;
@@ -159,6 +207,8 @@ void App_Task(void)//所有东西的应用层
     {
         last_uart_tick = now;
         UART_SendTemperature();
+
+		if (NTC_IsOverTemp()) Beep(100); 	//复用1s模块
     }
 }
 
@@ -170,15 +220,6 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)//总计时器
 	{
 		Beep_Tick(); 
 		LED_Breath_Tick();
-
-		if (beep_ms)                      
-		{
-    		if (beep_ms == 0)//为0关掉
-			{
-        		HAL_GPIO_WritePin(BUZ_GPIO_Port, BUZ_Pin, GPIO_PIN_RESET);
-			}
-			beep_ms--;
-		}	
 
 		if(Start)
 		{	
@@ -200,33 +241,41 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)//总计时器
 				pid_compute(&Rightspeed);
 				Set_LeftMotor(Leftspeed.Out);//差速记得写
 				Set_RightMotor(Rightspeed.Out);
+				Dist=(float)(encoder_cnt+encoder_cnt0)/2;
 			}
 			if(count3>=10)
 			{
 				count3=0;
 				LT_Sensor_Get(Sensor_Data);
 				if((Sensor_Data[0]||Sensor_Data[1]||Sensor_Data[2]||Sensor_Data[3]||Sensor_Data[4])==0)
+				{
+					line_lost_ms += 10;   
+					if(line_lost_ms >= 200)//持续200ms才认为脱线
 					{
 						Start=0;
 						Set_LeftMotor(0);
 						Set_RightMotor(0);
+						line_lost_ms=0;
+						Mode=ST_FAULT;
 					}
+				}
 				else{
+				line_lost_ms=0;   
 				square.Actual=Sensor_Data[0]*(-2)+Sensor_Data[1]*(-1)+Sensor_Data[2]*(0)+Sensor_Data[3]*(1)+Sensor_Data[4]*(2);//权重计算
 				oval.Actual=Sensor_Data[0]*(-2)+Sensor_Data[1]*(-1)+Sensor_Data[2]*(0)+Sensor_Data[3]*(1)+Sensor_Data[4]*(2);
 				circle.Actual=Sensor_Data[0]*(-2)+Sensor_Data[1]*(-1)+Sensor_Data[2]*(0)+Sensor_Data[3]*(1)+Sensor_Data[4]*(2);
 				switch (Mode)							//这里放循迹环
 				{
-					case 1:
+					case ST_STAIGHT:
 						DeltaSpeed=0;
 						break;
-					case 2:pid_compute(&circle);
+					case ST_CIRCLE:pid_compute(&circle);
 					DeltaSpeed=(float)(circle.Out*SPEED_RAGE/circle.OutMax);//因为最大和最小一般是相反数所以我偷懒了
 						break;
-					case 3:pid_compute(&square);
+					case ST_SQUARE:pid_compute(&square);
 						DeltaSpeed=(float)(square.Out*SPEED_RAGE/square.OutMax);
 						break;
-					case 4:pid_compute(&oval);
+					case ST_OVAL:pid_compute(&oval);
 						DeltaSpeed=(float)(oval.Out*SPEED_RAGE/oval.OutMax);
 						break;
 					default:

@@ -4,14 +4,16 @@
 static uint16_t s_adc_dma[NTC_ADC_BUF_LEN];// DMA 目标缓冲区，长度 2
 static uint32_t s_adc_filtered = 0;        //滤波ADC值
 static uint16_t s_raw_adc = 0;             //转回16位
-static float s_temperature_c = 0.0;        //最终温度值（摄氏度）
+static float s_temperature_c = 0.0;        //最终温度值（摄氏度）      
+static uint8_t s_over_temp = 0;
 
 HAL_StatusTypeDef NTC_Init(void)
 {
     s_adc_filtered = 0;
     s_raw_adc = 0;
     s_temperature_c = 0.0;
-
+    s_over_temp = 0;
+    
     if (HAL_ADCEx_Calibration_Start(&hadc1) != HAL_OK)//校准ADC
     {
         return HAL_ERROR;
@@ -48,21 +50,32 @@ void NTC_Update(void)
     if (s_raw_adc <= 5)//防止 log 出错
     {
         s_temperature_c = -40.0;//最小
-        return;
     }
-    if (s_raw_adc >= 4090)
+    else if (s_raw_adc >= 4090)
     {
         s_temperature_c = 125.0;//最大
-        return;
+    }
+    else
+    {
+        ratio = (float)s_raw_adc / (NTC_ADC_FULL_SCALE - (float)s_raw_adc); // 算出比值
+        r_ntc = NTC_SERIES_RESISTOR * ratio; // ntc阻值
+        temp_k = 1.0f / ((1.0f / NTC_NOMINAL_TEMPERATURE)+ (logf(r_ntc / NTC_NOMINAL_RESISTANCE) / NTC_BETA));//计算温度
+        s_temperature_c = temp_k - 273.15f; 
     }
 
-    ratio = (float)s_raw_adc / (NTC_ADC_FULL_SCALE - (float)s_raw_adc); // 算出比值
-    r_ntc = NTC_SERIES_RESISTOR * ratio; // ntc阻值
+    if (s_temperature_c >= NTC_TEMP_ALARM_HIGH)
+    {
+        s_over_temp = 1;
+    }
+    else if (s_temperature_c <= (NTC_TEMP_ALARM_HIGH - NTC_TEMP_ALARM_HYST))
+    {
+        s_over_temp = 0;
+    }
+}
 
-
-    temp_k = 1.0f / ((1.0f / NTC_NOMINAL_TEMPERATURE)+ (logf(r_ntc / NTC_NOMINAL_RESISTANCE) / NTC_BETA));//计算温度
-
-    s_temperature_c = temp_k - 273.15f; 
+uint8_t NTC_IsOverTemp(void)
+{
+    return s_over_temp;
 }
 
 float NTC_GetTemperature(void)

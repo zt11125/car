@@ -3,6 +3,7 @@
 #include "main.h"
 #include "tim.h"
 #include "app.h"
+extern uint16_t encoder_cnt0;
 
 uint16_t Encoder_GetLeftCnt(void);
 int16_t Encoder_GetRightSpeed(volatile int16_t* encoder_cn);

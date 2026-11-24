@@ -18,7 +18,7 @@ void LED_SetTemperature(float temp_c)
 
     t = (int32_t)(temp_c + 0.5f);//四舍五入，避免浮点计算
 
-    if (t < 5)//控制边界5-15
+    if (t < 5)//控制边界5-35
     {
         t = 5;
     }
@@ -27,7 +27,7 @@ void LED_SetTemperature(float temp_c)
         t = 35;
     }
 
-    interval = 15 - (t - 5) * 12 / 30;//从5-15映射到15ms-3ms,但是都是整数,会损失精度，但应该看不出来？
+    interval = 15 - (t - 5) * 12 / 30;//从5-35映射到15ms-3ms,但是都是整数,会损失精度，但应该看不出来？
 
     if (interval < 3)//再次控制
     {
