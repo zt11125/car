@@ -7,7 +7,7 @@ void UART_SendTemperature(void)
 
     temper =  NTC_GetTemperature();//获取温度
 
-    sprintf(buf,"Temperature :  %.1f\n",temper);//拼接字符串
+    sprintf(buf,"Temperature :  %.1f\r\n",temper);//拼接字符串
 
     HAL_UART_Transmit(&huart1, (uint8_t *)buf,strlen(buf), 100);//输出
 }
