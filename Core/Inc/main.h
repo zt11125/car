@@ -57,8 +57,8 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
-#define LED_PC13_Pin GPIO_PIN_13
-#define LED_PC13_GPIO_Port GPIOC
+#define DHT11_Pin GPIO_PIN_13
+#define DHT11_GPIO_Port GPIOC
 #define PWMA_Pin GPIO_PIN_0
 #define PWMA_GPIO_Port GPIOA
 #define PWMB_Pin GPIO_PIN_1
@@ -67,8 +67,6 @@ void Error_Handler(void);
 #define AIN1_GPIO_Port GPIOA
 #define AIN2_Pin GPIO_PIN_3
 #define AIN2_GPIO_Port GPIOA
-#define NTC_ADC_Pin GPIO_PIN_4
-#define NTC_ADC_GPIO_Port GPIOA
 #define BAT_SENSE_Pin GPIO_PIN_5
 #define BAT_SENSE_GPIO_Port GPIOA
 #define ENC1_A_Pin GPIO_PIN_6

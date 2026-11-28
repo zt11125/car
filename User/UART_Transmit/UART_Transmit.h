@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "usart.h"
-#include "bsp_ntc.h"
+#include "bsp_dht11.h"
 
 void UART_SendTemperature(void);
 

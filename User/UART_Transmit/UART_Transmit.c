@@ -5,7 +5,7 @@ void UART_SendTemperature(void)
     char buf[32] = "";//z字符串
     float  temper;
 
-    temper =  NTC_GetTemperature();//获取温度
+    temper =  DHT11_GetTemperature();//获取温度
 
     sprintf(buf,"Temperature :  %.1f\r\n",temper);//拼接字符串
 

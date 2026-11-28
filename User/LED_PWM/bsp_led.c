@@ -1,9 +1,9 @@
 #include "bsp_led.h"
 
-static uint16_t s_duty = 0;                     //当前占空比
-static uint16_t s_tick = 0;                     //距上次步进已过的毫秒数
-static volatile uint16_t s_interval_ms = 15;    //每步间隔
-static uint8_t  s_dir_up = 1;                   //呼吸方向
+static uint16_t duty = 0;                     //当前占空比
+static uint16_t tick = 0;                     //距上次步进已过的毫秒数
+static volatile uint16_t interval_ms = 15;    //每步间隔
+static uint8_t  dir_up = 1;                   //呼吸方向
 
 void LED_Init(void)
 {
@@ -38,39 +38,39 @@ void LED_SetTemperature(float temp_c)
         interval = 15;
     }
 
-    s_interval_ms = (uint16_t)interval;//输出到变量
+    interval_ms = (uint16_t)interval;//输出到变量
 }
 
 void LED_Breath_Tick(void)
 {
-    s_tick++;
-    if (s_tick < s_interval_ms)
+    tick++;
+    if (tick < interval_ms)
     {
         return;
     }
-    s_tick = 0;//计数器，控制频率
+    tick = 0;//计数器，控制频率
 
-    if (s_dir_up)//控制灯亮度即占空比
+    if (dir_up)//控制灯亮度即占空比
     {
-        s_duty += LED_BREATH_STEP;
-        if (s_duty >= LED_PWM_MAX)
+        duty += LED_BREATH_STEP;
+        if (duty >= LED_PWM_MAX)
         {
-            s_duty = LED_PWM_MAX;
-            s_dir_up = 0;
+            duty = LED_PWM_MAX;
+            dir_up = 0;
         }
     }
     else
     {
-        if (s_duty <= LED_BREATH_STEP)
+        if (duty <= LED_BREATH_STEP)
         {
-            s_duty = 0;
-            s_dir_up = 1;
+            duty = 0;
+            dir_up = 1;
         }
         else
         {
-            s_duty -= LED_BREATH_STEP;
+            duty -= LED_BREATH_STEP;
         }
     }
 
-    __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, s_duty);
+    __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, duty);
 }
