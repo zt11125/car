@@ -7,7 +7,7 @@
 #include "bsp_encoder.h"
 #include "bsp_motor.h"
 #include "Motor_config.h"
-#include "bsp_ntc.h"
+#include "bsp_dht11.h"
 #include "bsp_led.h"
 #include "UART_Transmit.h"
 #include "Beep.h"
@@ -73,9 +73,9 @@ PID_t Rightspeed=
 void App_Init(void)//所有外接需要初始值的初始化部分
 {
 
-	(void)NTC_Init();
 	LED_Init();
-    
+    DHT11_Init();
+
 	if (OLED_Init() == HAL_OK)
     {
         Display();
@@ -99,39 +99,47 @@ void Display(void)//给屏幕留的显示函数
 	}
 	if(Start)
 	{
-	if(Mode==ST_STAIGHT)
-	OLED_Printf(1,1,OLED_6X8,"mode:default");
-	if(Mode==ST_CIRCLE)
-	OLED_Printf(1,1,OLED_6X8,"mode:circle");
-	if(Mode==ST_SQUARE)
-	OLED_Printf(1,1,OLED_6X8,"mode:square");
-	if(Mode==ST_OVAL)
-	OLED_Printf(1,1,OLED_6X8,"mode:oval");
-
-	OLED_Printf(1,10,OLED_6X8,"channel1~5: %d %d %d %d %d",Sensor_Data[0],Sensor_Data[1],Sensor_Data[2],Sensor_Data[3],Sensor_Data[4]);
-	OLED_Printf(1,20,OLED_6X8,"Left Speed:%.2f ",Leftspeed.Actual);
-	OLED_Printf(1,30,OLED_6X8,"Right Speed:%.2f ",Rightspeed.Actual);
-	OLED_Printf(1,50,OLED_6X8,"%-20s",line);//故障码显示
-	}
-	else 
-	{
-		
-		OLED_Printf(1,10,OLED_6X8,"default");
-		OLED_Printf(2,10,OLED_6X8,"circle");
-		OLED_Printf(1,50,OLED_6X8,"square");
-		OLED_Printf(2,50,OLED_6X8,"oval");
-		OLED_Printf(4, 40, OLED_6X8, "Temp:%.1f C", (double)NTC_GetTemperature());
-		
 		if(Mode==ST_STAIGHT)
-		OLED_ReverseArea(1,10,6*7,8);
-		else if(Mode==ST_CIRCLE)
-		OLED_ReverseArea(2,10,6*6,8);
-		else if(Mode==ST_SQUARE)
-		OLED_ReverseArea(1,50,6*6,8);
-		else if(Mode==ST_OVAL)
-		OLED_ReverseArea(2,50,6*4,8);
-		
+		OLED_Printf(1,1,OLED_6X8,"mode:default");
+		if(Mode==ST_CIRCLE)
+		OLED_Printf(1,1,OLED_6X8,"mode:circle");
+		if(Mode==ST_SQUARE)
+		OLED_Printf(1,1,OLED_6X8,"mode:square");
+		if(Mode==ST_OVAL)
+		OLED_Printf(1,1,OLED_6X8,"mode:oval");
 
+		OLED_Printf(1,10,OLED_6X8,"channel1~5: %d %d %d %d %d",Sensor_Data[0],Sensor_Data[1],Sensor_Data[2],Sensor_Data[3],Sensor_Data[4]);
+		OLED_Printf(1,20,OLED_6X8,"Left Speed:%.2f ",Leftspeed.Actual);
+		OLED_Printf(1,30,OLED_6X8,"Right Speed:%.2f ",Rightspeed.Actual);
+		OLED_Printf(1,50,OLED_6X8,"%-20s",line);//故障码显示
+	}
+	else
+	{
+		OLED_Printf(1,  8, OLED_6X8, "default");
+		OLED_Printf(64, 8, OLED_6X8, "circle");
+
+		OLED_Printf(1,  24, OLED_6X8, "square");
+		OLED_Printf(64, 24, OLED_6X8, "oval");
+
+		OLED_Printf(1, 48, OLED_6X8, "Temp:%.1f C", (double)DHT11_GetTemperature());
+		OLED_Printf(1, 56, OLED_6X8, "RH:%.1f %%",  (double)DHT11_GetHumidity());
+
+		if (Mode == ST_STAIGHT)
+		{
+			OLED_ReverseArea(1, 8, 6 * 7, 8);
+		}
+		else if (Mode == ST_CIRCLE)
+		{
+			OLED_ReverseArea(64, 8, 6 * 6, 8);
+		}
+		else if (Mode == ST_SQUARE)
+		{
+			OLED_ReverseArea(1, 24, 6 * 6, 8);
+		}
+		else if (Mode == ST_OVAL)
+		{
+			OLED_ReverseArea(64, 24, 6 * 4, 8);
+		}
 	}
 }
 
@@ -198,8 +206,8 @@ void App_Task(void)//所有东西的应用层
     if ((uint32_t)(now - last_oled_tick) >= 200U)//放tim里优先级高会卡住systick
     {
         last_oled_tick = now;
-		NTC_Update();
-		LED_SetTemperature(NTC_GetTemperature());
+		DHT11_Update();
+		LED_SetTemperature(DHT11_GetTemperature());
         Display();
         OLED_Update();
     }
@@ -208,7 +216,7 @@ void App_Task(void)//所有东西的应用层
         last_uart_tick = now;
         UART_SendTemperature();
 
-		if (NTC_IsOverTemp()) Beep(100); 	//复用1s模块
+		if (DHT11_IsOverTemp()) Beep(100); 	//复用1s模块
     }
 }
 
